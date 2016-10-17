@@ -20,65 +20,39 @@ func (nr NetworkRange) size() uint32 {
 }
 
 func main() {
-	_, network, _ := net.ParseCIDR("10.0.0.0/8")
-	_, sub1, _ := net.ParseCIDR("10.240.0.0/16")
-	_, sub2, _ := net.ParseCIDR("10.0.0.0/24")
-	//_, sub3, _ := net.ParseCIDR("10.0.1.0/24")
 
-	//subnets := []NetworkRange{startAndEndRanges(*sub1), startAndEndRanges(*sub2), startAndEndRanges(*sub3)}
+	_, network, _ := net.ParseCIDR("172.16.0.0/16")
+	_, sub1, _ := net.ParseCIDR("172.16.0.0/28")
+	_, sub2, _ := net.ParseCIDR("172.16.2.0/24")
+
 	subnets := []NetworkRange{startAndEndRanges(*sub1), startAndEndRanges(*sub2)}
+	var cidrSize uint = 24
 
+	subnet := findSubnet(*network, subnets, cidrSize)
+
+	fmt.Printf("subnet definition should be %v/%v based on the gaps and a cidr of %v\n", intToIP(subnet), cidrSize, cidrSize)
+}
+
+func findSubnet(network net.IPNet, subnets []NetworkRange, cidr uint) uint32 {
 	By(startIP).Sort(subnets)
-
-	myrange := startAndEndRanges(*network)
-
-	fmt.Printf("Start is: %v\n", myrange.Start)
-	fmt.Printf("End is: %v\n", myrange.End)
+	myrange := startAndEndRanges(network)
 
 	gaps := getGapRanges(myrange.Start, myrange.End, subnets)
-	fmt.Printf("Number of gaps is %v\n", len(gaps))
 
-	var startAddr uint32
+	return findSubnetStart(gaps, cidr)
+}
+
+func findSubnetStart(gaps []NetworkRange, cidrSize uint) uint32 {
+	blocksize := uint32(math.Pow(2, float64((32 - cidrSize))))
+
 	for _, g := range gaps {
-		fmt.Printf("g is %v at starting ip: %v\n", g, intToIP(g.Start))
-		if g.size() > 512 {
-			startAddr = g.Start
-			break
+		alignedStart := g.Start + blocksize - (g.Start % blocksize)
+		if (g.End - alignedStart + 1) >= blocksize {
+			return alignedStart
 		}
 	}
 
-	blocksize := 24
-
-	fmt.Printf("the new subnet will be created as such: %v/%v\n", getStartIPforBlock(startAddr, uint32(blocksize)), blocksize)
-}
-
-func getStartIPforBlock(start, blocksize uint32) string {
-	bs := make([]byte, 4)
-
-	//bump the size to eliminate any overlap in IP addresses
-	if blocksize < 32 {
-		start = start + 254 //not 255 because the first address is available
-	}
-	if blocksize < 24 {
-		start = start + 65535
-	}
-	if blocksize < 16 {
-		start = start + 16777215
-	}
-
-	binary.LittleEndian.PutUint32(bs, start)
-
-	if blocksize < 32 {
-		bs[0] = 0
-	}
-	if blocksize < 24 {
-		bs[1] = 0
-	}
-	if blocksize < 16 {
-		bs[2] = 0
-	}
-
-	return strings.Join(bytesToString(bs), ".")
+	return 0
 }
 
 func startAndEndRanges(network net.IPNet) NetworkRange {
@@ -152,7 +126,8 @@ func (n *networkSorter) Less(i, j int) bool {
 }
 
 func getGapRanges(start, end uint32, subnets []NetworkRange) []NetworkRange {
-	gaps := make([]NetworkRange, 0)
+	//gaps := make([]NetworkRange, 0)
+	var gaps []NetworkRange
 
 	for _, sub := range subnets {
 		if start < sub.Start {
