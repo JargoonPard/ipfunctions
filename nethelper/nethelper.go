@@ -67,7 +67,7 @@ func convertIPtoInt(input net.IP) uint32 {
 }
 
 //IntToIP converts a uint32 representation of a network address into
-//a . notation string representation
+//a . notation string representation (e.g. 127.0.0.0)
 func IntToIP(input uint32) string {
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, input)
@@ -117,8 +117,10 @@ func (n *networkSorter) Less(i, j int) bool {
 	return n.by(&n.networks[i], &n.networks[j])
 }
 
+//getGapRanges is used to create a collection of range objects that
+//represent the available IP ranges within the network that can be
+//used to create new subnets
 func getGapRanges(start, end uint32, subnets []Range) []Range {
-	//gaps := make([]Range, 0)
 	var gaps []Range
 
 	for _, sub := range subnets {
