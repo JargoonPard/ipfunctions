@@ -1,16 +1,14 @@
 package nethelper
 
 import (
-	"encoding/binary"
 	"math"
 	"net"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 //Range is a simple type that represents the start and
-//end IP address epxressed as uint32 values
+//end IP address expressed as uint32 values
 type Range struct {
 	Start uint32
 	End   uint32
@@ -64,15 +62,6 @@ func startIP(net1, net2 *Range) bool {
 
 func convertIPtoInt(input net.IP) uint32 {
 	return (uint32(input[0]) << 24) + (uint32(input[1]) << 16) + (uint32(input[2]) << 8) + uint32(input[3])
-}
-
-//IntToIP converts a uint32 representation of a network address into
-//a . notation string representation (e.g. 127.0.0.0)
-func IntToIP(input uint32) string {
-	bs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bs, input)
-
-	return strings.Join(bytesToString(bs), ".")
 }
 
 func bytesToString(bs []byte) []string {

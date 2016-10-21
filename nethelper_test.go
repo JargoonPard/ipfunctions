@@ -108,27 +108,6 @@ func TestFindSubnet(t *testing.T) {
 	}
 }
 
-func TestIntToIP(t *testing.T) {
-	input := uint32(127 << 24)
-
-	s := IntToIP(input)
-	if s != "127.0.0.0" {
-		t.Errorf("Expected 127.0.0.0 but got %v", s)
-	}
-
-	input = uint32(255<<24) + uint32(255<<16) + uint32(255<<8) + 255
-	s = IntToIP(input)
-	if s != "255.255.255.255" {
-		t.Errorf("Expected 255.255.255.255 but got %v", s)
-	}
-
-	input = 0
-	s = IntToIP(input)
-	if s != "0.0.0.0" {
-		t.Errorf("Expected 0.0.0.0 but got %v", s)
-	}
-}
-
 func TestGapFinderSubInMiddle(t *testing.T) {
 	_, network, _ := net.ParseCIDR("172.16.0.0/16")
 	networkRange := StartAndEndRanges(*network)
