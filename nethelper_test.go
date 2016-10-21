@@ -39,25 +39,57 @@ func TestStartAndEndRanges(t *testing.T) {
 
 func TestGapFinderSubAtStart(t *testing.T) {
 	_, network, _ := net.ParseCIDR("172.16.0.0/16")
-	networkRange := StartAndEndRanges(*network)
 
 	subs := buildTestSubnets(1)
-
-	gaps := getGapRanges(networkRange.Start, networkRange.End, subs)
+	gaps := getGapRanges(*network, subs)
 
 	if len(gaps) != 1 {
 		t.Errorf("Expected a lenth of 1 but got %v", len(gaps))
 	}
 }
 
+func TestIntToIP(t *testing.T) {
+	input := uint32(127 << 24)
+
+	s := IntToIP(input)
+	if s != "127.0.0.0" {
+		t.Errorf("Expected 127.0.0.0 but got %v", s)
+	}
+
+	input = uint32(255<<24) + uint32(255<<16) + uint32(255<<8) + 255
+	s = IntToIP(input)
+	if s != "255.255.255.255" {
+		t.Errorf("Expected 255.255.255.255 but got %v", s)
+	}
+
+	input = 0
+	s = IntToIP(input)
+	if s != "0.0.0.0" {
+		t.Errorf("Expected 0.0.0.0 but got %v", s)
+	}
+}
+
+func TestInvalidSubnet(t *testing.T) {
+	var subnets []Range
+
+	_, network, _ := net.ParseCIDR("10.0.0.0/16")
+	_, subnet, _ := net.ParseCIDR("172.16.0.0/22")
+	subnets = append(subnets, StartAndEndRanges(*subnet))
+
+	gaps := getGapRanges(*network, subnets)
+
+	if len(gaps) != 0 {
+		t.Errorf("Expected no gaps but got %v", len(gaps))
+	}
+}
+
 func TestGapFinder(t *testing.T) {
 	_, network, _ := net.ParseCIDR("172.16.0.0/16")
-	networkRange := StartAndEndRanges(*network)
 
 	subs := buildTestSubnets(5)
 	By(startIP).Sort(subs)
 
-	gaps := getGapRanges(networkRange.Start, networkRange.End, subs)
+	gaps := getGapRanges(*network, subs)
 
 	if len(gaps) != 3 {
 		t.Errorf("Expected a lenth of 3 but got %v", len(gaps))
@@ -110,7 +142,6 @@ func TestFindSubnet(t *testing.T) {
 
 func TestGapFinderSubInMiddle(t *testing.T) {
 	_, network, _ := net.ParseCIDR("172.16.0.0/16")
-	networkRange := StartAndEndRanges(*network)
 
 	_, sub1, _ := net.ParseCIDR("172.16.32.0/19")
 	subRange := StartAndEndRanges(*sub1)
@@ -118,7 +149,7 @@ func TestGapFinderSubInMiddle(t *testing.T) {
 	subs := make([]Range, 1)
 	subs[0] = subRange
 
-	gaps := getGapRanges(networkRange.Start, networkRange.End, subs)
+	gaps := getGapRanges(*network, subs)
 
 	if len(gaps) != 2 {
 		t.Errorf("Expected a lenth of 2 but got %v", len(gaps))

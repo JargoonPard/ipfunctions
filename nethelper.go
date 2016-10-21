@@ -1,10 +1,12 @@
 package nethelper
 
 import (
+	"encoding/binary"
 	"math"
 	"net"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 //Range is a simple type that represents the start and
@@ -22,9 +24,8 @@ func (nr Range) size() uint32 {
 //from within the network that has the existing subnets already defined
 func FindSubnet(network net.IPNet, subnets []Range, cidr uint) uint32 {
 	By(startIP).Sort(subnets)
-	myrange := StartAndEndRanges(network)
 
-	gaps := getGapRanges(myrange.Start, myrange.End, subnets)
+	gaps := getGapRanges(network, subnets)
 
 	return findSubnetStart(gaps, cidr)
 }
@@ -62,6 +63,15 @@ func startIP(net1, net2 *Range) bool {
 
 func convertIPtoInt(input net.IP) uint32 {
 	return (uint32(input[0]) << 24) + (uint32(input[1]) << 16) + (uint32(input[2]) << 8) + uint32(input[3])
+}
+
+//IntToIP converts a uint32 representation of a network address into
+//a . notation string representation (e.g. 127.0.0.0)
+func IntToIP(input uint32) string {
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, input)
+
+	return strings.Join(bytesToString(bs), ".")
 }
 
 func bytesToString(bs []byte) []string {
@@ -109,11 +119,14 @@ func (n *networkSorter) Less(i, j int) bool {
 //getGapRanges is used to create a collection of range objects that
 //represent the available IP ranges within the network that can be
 //used to create new subnets
-func getGapRanges(start, end uint32, subnets []Range) []Range {
+func getGapRanges(network net.IPNet, subnets []Range) []Range {
 	var gaps []Range
+	networkRange := StartAndEndRanges(network)
+	start := networkRange.Start
 
 	for _, sub := range subnets {
-		if start < sub.Start {
+		ip := net.ParseIP(IntToIP(sub.Start))
+		if network.Contains(ip) && start < sub.Start {
 			gap := Range{Start: start, End: sub.Start - 1}
 			gaps = append(gaps, gap)
 		}
@@ -121,8 +134,8 @@ func getGapRanges(start, end uint32, subnets []Range) []Range {
 		start = sub.End + 1
 	}
 
-	if start < end {
-		gap := Range{Start: start, End: end}
+	if start < networkRange.End {
+		gap := Range{Start: start, End: networkRange.End}
 		gaps = append(gaps, gap)
 	}
 
