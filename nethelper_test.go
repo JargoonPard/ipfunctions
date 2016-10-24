@@ -39,8 +39,8 @@ func TestStartAndEndRanges(t *testing.T) {
 
 func TestGapFinderSubAtStart(t *testing.T) {
 	_, network, _ := net.ParseCIDR("172.16.0.0/16")
-
 	subs := buildTestSubnets(1)
+
 	gaps := getGapRanges(*network, subs)
 
 	if len(gaps) != 1 {
@@ -117,26 +117,26 @@ func TestFindSubnet(t *testing.T) {
 
 	result := FindSubnet(*network, subs, 24)
 
-	if result != 2886729984 {
-		t.Errorf("Expected a starting IP of 2886729984 but got %v", result)
+	if result.String() != "172.16.1.0/24" {
+		t.Errorf("Expected 172.16.1.0/24 but got %v", result.String())
 	}
 
 	result = FindSubnet(*network, subs, 21)
 
-	if result != 2886731776 {
-		t.Errorf("Expected a starting IP of 2886731776 but got %v", result)
+	if result.String() != "172.16.8.0/21" {
+		t.Errorf("Expected 172.16.8.0/21 but got %v", result.String())
 	}
 
 	result = FindSubnet(*network, subs, 20)
 
-	if result != 2886750208 {
-		t.Errorf("Expected a starting IP of 2886750208 but got %v", result)
+	if result.String() != "172.16.80.0/20" {
+		t.Errorf("Expected 172.16.80.0/20 but got %v", result.String())
 	}
 
 	result = FindSubnet(*network, subs, 16)
 
-	if result != 0 {
-		t.Errorf("Expected a starting IP of 0 but got %v", result)
+	if result.String() != "0.0.0.0/16" {
+		t.Errorf("Expected 0.0.0.0/16 but got %v", result.String())
 	}
 }
 

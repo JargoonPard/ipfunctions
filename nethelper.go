@@ -22,15 +22,20 @@ func (nr Range) size() uint32 {
 
 //FindSubnet finds the start address of a subnet that meets the cidr requirments
 //from within the network that has the existing subnets already defined
-func FindSubnet(network net.IPNet, subnets []Range, cidr uint) uint32 {
+func FindSubnet(network net.IPNet, subnets []Range, cidr int) net.IPNet {
 	By(startIP).Sort(subnets)
 
 	gaps := getGapRanges(network, subnets)
 
-	return findSubnetStart(gaps, cidr)
+	startAddress := findSubnetStart(gaps, cidr)
+	//startAddress := FindSubnet(network, subnets, cidr)
+	ip := net.ParseIP(IntToIP(startAddress))
+	_, subnet, _ := net.ParseCIDR(ip.String() + "/" + strconv.Itoa(cidr))
+
+	return *subnet
 }
 
-func findSubnetStart(gaps []Range, cidrSize uint) uint32 {
+func findSubnetStart(gaps []Range, cidrSize int) uint32 {
 	blocksize := uint32(math.Pow(2, float64((32 - cidrSize))))
 
 	for _, g := range gaps {
@@ -61,10 +66,6 @@ func startIP(net1, net2 *Range) bool {
 	return net1.Start < net2.Start
 }
 
-func convertIPtoInt(input net.IP) uint32 {
-	return (uint32(input[0]) << 24) + (uint32(input[1]) << 16) + (uint32(input[2]) << 8) + uint32(input[3])
-}
-
 //IntToIP converts a uint32 representation of a network address into
 //a . notation string representation (e.g. 127.0.0.0)
 func IntToIP(input uint32) string {
@@ -72,6 +73,10 @@ func IntToIP(input uint32) string {
 	binary.LittleEndian.PutUint32(bs, input)
 
 	return strings.Join(bytesToString(bs), ".")
+}
+
+func convertIPtoInt(input net.IP) uint32 {
+	return (uint32(input[0]) << 24) + (uint32(input[1]) << 16) + (uint32(input[2]) << 8) + uint32(input[3])
 }
 
 func bytesToString(bs []byte) []string {
